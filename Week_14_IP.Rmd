@@ -1,0 +1,982 @@
+---
+title: "Week_14_Project"
+author: "Nelson Muteti"
+date: "6/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Nelson Muteti : Independent Project Week 14
+
+
+## 1.1 Defining the Question
+
+**I am a Data analyst at Carrefour Kenya and is currently undertaking a project that will** **inform the marketing department on the most relevant marketing strategies that will result** **in the highest no. of sales (total price including tax).My project has been divided into** **four parts where I'll explore a recent marketing dataset by performing various** **unsupervised learning techniques and later providing recommendations based on my insights.**
+
+## 1.2 Defining Metrics for Success
+
+**A succesful project will clean the data provided, perform Univariate and Bivariate**
+**analysis of the variables and finally draw recommendations for the supermarket.**
+
+## 1.3 Understanding The context.
+
+**The context here is mainly about supermarkets and retail based business**
+
+## 1.4 Reading the data
+
+#import some necessary libraries
+
+
+```{r}
+library(data.table)
+```
+```{r}
+library(dplyr)
+```
+
+```{r}
+library(ggplot2)
+```
+```{r}
+library(tidyverse)
+```
+
+
+**Read the data.**
+
+
+```{r}
+df <- fread("http://bit.ly/CarreFourDataset")
+```
+
+
+```{r}
+head(df)
+```
+
+## 1.5 Data Cleaning
+
+
+**First objective - Reduce the Dimensionality of dataset.**
+
+**First, clean and validate the data.**
+
+
+```{r}
+colSums(is.na(df))
+
+#identifying any missing values in data
+```
+
+
+```{r}
+library(Amelia)
+```
+
+```{r}
+missmap(df)
+```
+
+
+**None of the columns have NA values.**
+
+**Remove duplicate data.**
+
+
+```{r}
+
+mydf <- unique(df)
+dim(df)
+```
+
+
+
+**Original data has 1000 rows and 16 columns.**
+
+
+```{r}
+dim(mydf)
+```
+
+
+**Clean data has 1000 rows and 16 columns too.**
+
+**Get summary of data.**
+
+
+```{r}
+summary(mydf)
+```
+
+```{r}
+str(mydf)
+```
+
+
+**Identify outliers in data.**
+
+```{r}
+boxplot(mydf$`Unit price`,col = "red",main="Checking Outliers in Unit Price Column",xlab="Unit Price")
+
+```
+
+
+**There doesnt seem to be any outliers.**
+
+
+```{r}
+boxplot(mydf$`gross income`,col = "darkgreen",main="Checking Outliers in Gross Income Column",xlab="Gross Income")
+```
+```{r}
+boxplot.stats(mydf$`gross income`)$out
+```
+
+
+**Just a few outliers which may be important to the data.**
+
+```{r}
+boxplot(mydf$Tax,col = "darkblue",main="Checking Outliers in tax Column",xlab="Tax")
+```
+
+
+
+**Also some few outliers here but we choose not to drop them since they could be useful in** **analysis.**
+
+## 1.6 Univariate EDA
+
+**Now we proceed to Univariate EDA.**
+
+**First, some descriptive stats about the data.**
+
+
+```{r}
+#get average quantity of items sold
+
+mean(mydf$Quantity)
+```
+
+
+**On average, about 5 to 6 pieces are sold per item in the supermarket.**
+
+**Get most popular product line in the supermarket.**
+
+
+
+```{r}
+mymod<-function(v){uniqv<-unique(v)
+uniqv[which.max(tabulate(match(v,uniqv)))]
+}
+```
+```{r}
+mymod(mydf$`Product line`)
+```
+
+**Fashion accessories are the most popular products.** 
+
+**Now, get the most popular branch.**
+
+
+```{r}
+mymod(mydf$Branch)
+```
+
+
+**Branch A seems to be the most recorded for sales.**
+
+**Now, lets find out the different quantiles of tax payments.**
+
+
+```{r}
+quantile(mydf$Tax)
+```
+
+
+**The median tax per item line is ksh 12.088 /- while the most taxed items accrue about** **49.65 /-**
+
+**Barplot for branches in data.**
+
+
+```{r}
+
+df_branch <- mydf$Branch
+
+df_branch <- table(df_branch)
+
+barplot(df_branch,col = 'blue',xlab = "Branches",ylab = "Count",main = "Supermarket Branches in Data")
+```
+
+
+**Branch A has more visits  while C has the least. The difference does not seem to be** **significant.**
+
+
+**Barplot for product line in data.**
+
+
+```{r}
+
+df_prod <- mydf$`Product line`
+
+df_prod <- table(df_prod)
+
+barplot(df_prod,col = 'maroon',xlab = "Product Lines",ylab = "Count",main = "Product Lines in Data")
+```
+
+
+**Health and beauty seem to have the least sale frequencies.**
+
+**Histogram to visulaize distribution of total sales.**
+
+
+```{r}
+hist(mydf$Total,col = 'green',xlab = 'Total',main = "Total sales Distribution in data",freq = FALSE)
+
+# include a Kernel density estimator line on Histogram
+
+dens <- density(mydf$Total)
+# include the KDE line
+lines(dens)
+```
+
+
+**Most of the total sales of individual transactions seem to be on the lower end of the** **Kernel density Estimator.**
+
+**As the total sum increases, the transactions reduce and vice-versa.**
+
+**Find skewness of total income.**
+
+
+```{r}
+library(moments)
+
+skewness(mydf$Total)
+```
+
+
+**The Total column has a strong positive skewness. This means that majority of data points** **lie to the left of the mean.**
+
+
+
+## 1.7. Bi-Variate Analysis
+
+**First, a side by side boxplot.**
+
+
+```{r}
+boxplot(`gross income` ~ `Product line`,data = mydf,main = "Gross Income by Product Line",colors(distinct = FALSE))
+```
+
+
+**Health and beauty has the highest average gross income while only recording a few** **transactions.**
+
+**While fashion accessories have the lowest average gross income while recording more** **transations.**
+
+
+```{r}
+boxplot(Total ~ Branch,data = mydf,main = "Total Income by Branches",colors(distinct = FALSE))
+```
+
+
+**While branch C seems to have a higher average total insome, there is no much difference**  **on this criteria.**
+
+
+```{r}
+boxplot(Total ~ Payment,data = mydf,main = "Total Income by Payment Type",colors(distinct = FALSE))
+```
+
+
+**Also, no much difference between payment type and total income.**
+
+
+```{r}
+tapply(mydf$Total,mydf$Gender,mean)
+```
+
+
+**On average, Females spend a bit more than males from the data.**
+
+
+# **scatter plot**
+
+```{r}
+plot(Tax~Total,data = mydf,main = "Tax vs Total Income")
+```
+
+
+**Find correlation.**
+
+
+```{r}
+cor(mydf$Tax,mydf$Total)
+```
+
+
+**The tax and sales are strongly correlated from both the scatter plot and  correlation.** **coefficient.**
+
+**Does the rating impact the Total sales.?**
+
+```{r}
+plot(Rating~Total,data = mydf,main = "Rating vs Total Income")
+```
+
+```{r}
+# find correlation 
+
+cor(mydf$Rating,mydf$Total)
+```
+
+
+**There is no correlation between Product rating and total Income from sales.**
+
+**Pairplots.**
+
+
+```{r}
+pairs(mydf[,c(6,8,14,15,16)])
+```
+
+
+
+**Analysis of Branch by Product Line.**
+
+
+```{r}
+ggplot(mydf,
+       aes(x = Branch,
+           fill = `Product line`))+
+  geom_bar(position = "dodge")+
+  labs(title = "Analysis of Branch by Product Line")
+```
+
+
+## 1.8 .Multivariate analysis
+
+**Gross Income vs Unit Price by Product Line.**
+
+
+```{r}
+ggplot(mydf,
+       aes(x = `gross income`,
+           y = `Unit price`,
+           color=`Product line`))+
+  geom_point()+labs(title = "Gross Income vs Unit Price by Product Line")
+```
+
+
+**Get all correlations for numerical data.**
+
+
+```{r}
+cor(mydf[,c(6,8,14,15,16,7,12)])
+```
+
+
+## Part 1.
+
+# **Dimensionality Reduction using PCA.**
+
+**This section of the project entails reducing your dataset to a low dimensional dataset** **using  PCA.** 
+
+**I will be required to perform your analysis and provide insights gained from my analysis.**
+
+
+**First, Selecting the numerical data (excluding the categorical variables).**
+
+
+```{r}
+df1 <-select(mydf,c(6,7,8,12,14,15,16))
+```
+```{r}
+head(df1)
+```
+
+
+**Ascertain data is all numerical.**
+
+```{r}
+str(df1)
+```
+
+```{r}
+df1$Quantity <- as.numeric(df1$Quantity)
+```
+```{r}
+str(df1) 
+```
+
+
+**We then pass df1 to the prcomp(). We also set two arguments, center and scale,** 
+
+**to be TRUE then preview our object with summary.**
+
+
+```{r}
+df1.pca <- prcomp(df1, center = TRUE, scale. = TRUE)
+```
+
+
+**Now that the PCA model is built, lets check importance of components in data.**
+
+
+```{r}
+summary(df1.pca)
+```
+
+
+**We have obtained 7 components.**
+
+**The first component accounts for 70 % of variation in data.**
+
+**The second accounts for about 14 % therefore the first two components account for about**
+
+**84 % of total variation in data.**
+
+
+**Now, lets find the structure of the PCA object.**
+
+```{r}
+str(df1.pca)
+```
+
+
+
+**Now we can identify the center values for each of the variables for our PCA.**
+
+
+```{r}
+df1.pca$center
+```
+
+
+**Finally lets plot the PCA components.**
+
+```{r}
+library(devtools)
+```
+```{r}
+library(ggbiplot)
+```
+
+```{r}
+ggbiplot(df1.pca)
+```
+
+
+**Variable quantity, gross income, unit price and rating contribute the most to the 2 PCA's.** 
+**With higher values in those variables moving the samples to the left on the plot.**
+
+
+## Part 2.
+
+
+# **Now for Feature Selection.**
+
+**1.)Feature Ranking.**
+
+**We first use the feature ranking library Fselector for this.**
+
+
+```{r}
+library(FSelector)
+```
+
+
+**First convert some variables to factor.**
+
+
+```{r}
+mydf$`Customer type` <- as.factor(mydf$`Customer type`)
+
+mydf$Branch <- as.factor(mydf$Branch)
+
+mydf$`Product line` <- as.factor(mydf$`Product line`)
+
+mydf$Gender <- as.factor(mydf$Gender)
+
+mydf$Payment <- as.factor(mydf$Payment)
+
+mydf$Quantity <- as.numeric(mydf$Quantity)
+```
+
+```{r}
+str(mydf)
+```
+
+
+**Select data for the ranking process.**
+
+
+```{r}
+df2 <-select(mydf,c(6,7,8,12,14,15,16))
+
+head(df2)
+```
+
+```{r}
+Scores <- linear.correlation(Total~.,df2)
+
+Scores
+```
+
+
+**Now, lets define a cut off point for the 3  most important attributes.**
+
+
+```{r}
+imp_variables <- cutoff.k(Scores, 3)
+
+as.data.frame(imp_variables)
+```
+
+
+**The most important features from data are Tax, cogs and gross income.**
+
+**Now lets choose variables by information gain / entropy.**
+
+```{r}
+Scores2 <- information.gain(Total~.,df2)
+
+Scores2
+```
+
+
+**Defining the cut off for the three most important variables.**
+
+
+```{r}
+imp_variables_entropy <- cutoff.k(Scores2, 3)
+
+as.data.frame(imp_variables_entropy)
+```
+
+
+**Tax , cogs and gross income are still the most important attributes.**
+
+
+
+# **2.) Filter Methods .**
+
+**Use correlation plots to understand the variables that are highly correlated.**
+
+
+```{r}
+library(caret)
+```
+
+
+```{r}
+library(corrplot)
+```
+
+```{r}
+head(df2)
+```
+
+
+**Now calculate correlation Matrix.**
+
+
+```{r}
+correlationMatrix <- cor(df2)
+```
+
+
+**Next, we find attributes that are highly correlated.**
+
+
+```{r}
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=0.75)
+```
+
+
+**We set our cut-off to about 0.80 for highly correlated attributes.**
+
+**List the highly correlated attributes.**
+
+
+```{r}
+highlyCorrelated
+```
+
+
+**Column 3,4 and 5 are highly correlated.**
+
+
+```{r}
+df3 <- select(df2,c(1,2,6,7))
+```
+
+```{r}
+head(df3)
+```
+
+
+
+**Performing our graphical comparison.**
+
+
+```{r}
+par(mfrow = c(1, 2))
+corrplot(correlationMatrix, order = "hclust")
+
+corrplot(cor(df3), order = "hclust")
+```
+
+
+**As we can see, all highly correlated columns have been deducted from our final dataset.**
+
+## Part 3 : Association Analysis
+
+
+```{r}
+library(arules)
+```
+
+
+**Library Arules It provides the infrastructure for representing, manipulating and analyzing** **transaction data and patterns (frequent itemsets and association rules).** 
+
+
+```{r}
+path = "http://bit.ly/SupermarketDatasetII"
+```
+
+```{r}
+goods <- read.transactions(path,sep = ",")
+
+goods
+```
+
+
+**Data  has 7501 transactions and 119 items.**
+
+
+```{r}
+class(goods)
+```
+
+
+**The data is of class transactions and contained in the arules package.**
+
+**Check the first 5 transactions under goods dataset.**
+
+
+```{r}
+inspect(goods[1:5])
+```
+
+
+**Preview items under goods dataset.**
+
+
+```{r}
+items<-as.data.frame(itemLabels(goods))
+```
+
+
+**Convert data into a data.frame object.**
+
+```{r}
+colnames(items) <- "Item"
+```
+
+
+**Give column name for output.**
+
+
+```{r}
+head(items, 10)
+```
+
+
+**Get the first 10 items under goods dataset.**
+
+
+```{r}
+summary(goods)
+```
+
+
+**The most frequently transacted items are mineral water , eggs and spaghetti.**
+
+
+**Lets check the frequency of transactions ranging from 10 to 15.**
+
+
+```{r}
+itemFrequency(goods[, 10:15],type = "absolute")
+```
+
+
+**Next, we explore the data.**
+
+**We display top 10 most common items in the transactions dataset and the items whose** **relative importance is at least 10 percent**
+
+
+```{r}
+par(mfrow = c(1, 2))
+
+
+# plot the frequency of items
+itemFrequencyPlot(goods, topN = 10,col="green")
+
+# the first plot outputs the top 10 bought items from the data
+
+itemFrequencyPlot(goods, support = 0.1,col="red")
+```
+
+
+**The 2nd plot outputs items with a support ( importance ) of 10 % and above.**
+
+**Now, lets build the associative analysis model rules and give insights.**
+
+**We use the apriori function and set support to 0.001 and confidence to 0.8.**
+
+
+```{r}
+rules <- apriori (goods, parameter = list(supp = 0.001, conf = 0.8))
+rules
+```
+
+
+**For the first model, there are a set of 74 rules.**
+
+**Lets try different levels of support and confidence and inspect the models.**
+
+
+
+```{r}
+rule2 <- apriori (goods, parameter = list(supp = 0.001, conf = 0.6))
+rule2
+```
+
+
+**When confidence reduces to 0.6, we get an increased number of rules, from 74 to 545.**
+
+
+```{r}
+rule3 <- apriori (goods, parameter = list(supp = 0.002, conf = 0.8))
+rule3
+```
+
+
+**When we increase the support to about 0.002, the rules drastically reduce to 2.**
+
+**We choose the first rule when support is 0.001 and confidence is 0.6.**
+
+**Lets explore the rule.**
+
+
+```{r}
+summary(rules)
+```
+
+
+**Inspecting the first 5 transactions of the rule.**
+
+
+```{r}
+inspect(rules[1:5])
+```
+
+
+**If someone buys frozen smoothie and spinach, we have a confidence level of 88 % that they** **will buy mineral water too.**
+
+
+**Also, if someone purchases mushroom cream sauce and pasta, they have a 95 % likelihood of** **purchasing escalope.**
+
+
+**We can therefore recommend that the Supermarket advertises escalope to people who purchase** **the combination above.**
+
+**Now, lets order the rule by confidence , sorting it from highest to lowest confidence.**
+
+
+```{r}
+rules<-sort(rules, by="confidence", decreasing=TRUE)
+inspect(rules[1:10])
+```
+
+
+**Its interesting to note that customers purchasing cake,meatballs and mineral water almost** **always end up puchasing milk. We would therefore recommend that the Supermarket place** **these items strategically such that they increase the sales of milk.**
+
+
+**Sticking with milk, say that the supermarket is interested in increasing the sales of milk** **or understanding milk puchases, we can do that by understanding the items customers bought** **before buying milk.**
+
+```{r}
+milk <- subset(rules, subset = rhs %pin% "milk")
+```
+
+
+
+**Then order by confidence.**
+
+
+```{r}
+milk<-sort(milk, by="confidence", decreasing=TRUE)
+inspect(milk[1:5])
+```
+
+
+**Customers buying cake, meatballs,burgers,whole wheat pasta and black tea almost always.** **purchased milk.**
+
+
+## Part 4.
+
+# **Anomaly Detection.**
+
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+library(anomalize)
+```
+```{r}
+library(timetk)
+```
+
+```{r}
+library(tibble)
+```
+
+```{r}
+library(tibbletime)
+```
+
+
+```{r}
+data2 <- fread("http://bit.ly/CarreFourSalesDataset")
+```
+
+
+**Understand the structure of the data.**
+
+```{r}
+str(data2)
+```
+
+
+**Check for missing data.**
+
+
+```{r}
+missmap(data2)
+```
+
+
+**No missing values in data.**
+
+**Convert the date character type to an actual DateTime format.**
+
+
+```{r}
+data2$Date <- as.Date(data2$Date,format = "%m/%d/%y")
+```
+```{r}
+str(data2)
+```
+
+
+**Confirm date data type is imputed.**
+
+
+```{r}
+dim(data2)
+```
+
+
+**Data has 1000 rows and 2 columns.**
+
+
+```{r}
+duplicated(data2$Date)
+```
+
+
+**There are a lot of duplicated dates in data.**
+
+**remove those duplicated dates and there sales figures by aggregating by sum.**
+
+
+```{r}
+data5<-aggregate(data2$Sales, by=list(data2$Date), sum)
+```
+
+
+```{r}
+head(data5)
+```
+
+```{r}
+dim(data5)
+```
+
+
+**There are only 89 non- duplicated dates in data.**
+
+**Convert df to a tibble.**
+
+
+```{r}
+data5 <- as_tibble(data5)
+class(data5)
+```
+
+
+**Build anomaly deduction model and plot.**
+
+
+```{r}
+data5 %>%
+  time_decompose(x) %>%
+  anomalize(remainder) %>%
+  time_recompose() %>%
+  plot_anomalies(time_recomposed = TRUE, ncol = 2, alpha_dots = 0.5,color_no = "darkblue",color_yes = "red")
+```
+
+
+
+**From the plot above, there are no anomalies in data.**
+
+**All sales figures seem to be within margins of error.**
+
+
+
+**We can plot another anomaly deduction plot as shown.**
+
+
+```{r}
+df_anomalized <- data5 %>%
+  time_decompose(x, merge = TRUE) %>%
+  anomalize(remainder) %>%
+  time_recompose()
+df_anomalized %>% glimpse()
+```
+
+```{r}
+str(df_anomalized$anomaly)
+```
+
+
+**As seen, there are no anomalies in the sales figures.** 
+
+
+```{r}
+df_anomalized %>% plot_anomalies(ncol = 2, alpha_dots = 0.75,color_no = "darkblue",color_yes = "darkred")
+```
+
+
+**There was no fraud detected from the Supermarket sales figures.**
+
+
+## 1.9. Recommendations.
+
+
+**a.) From the models above, we have seen that the most important features / attributes that** **the sales team should consider are Tax and Cogs inorder to  increase total sales figures.**
+
+**b.) Health and beauty has the highest average gross income while only recording a few** **transactions while fashion accessories have the lowest average gross income while** **recording more transations.This information is very crucial in determining which**  **customers to target.**
+
+**c.) Its interesting to note that customers purchasing cake,meatballs and mineral water** **almost always end up puchasing milk. We would therefore recommend that the Supermarket** **place these items strategically such that they increase the sales of milk.**
+
