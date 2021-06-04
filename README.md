@@ -1,4 +1,4 @@
-# Dimensionality Reduction , Anomaly Reduction and Associative Analysis.
+# Dimensionality Reduction , Anomaly Detection and Associative Analysis.
 
 
 #### By Nelson Muteti
